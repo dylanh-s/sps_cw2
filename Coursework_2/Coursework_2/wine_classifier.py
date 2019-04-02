@@ -16,14 +16,15 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 
 from utilities import load_data, print_features, print_predictions
-from feature_select import compare, plot_feature_selection_scatter, plot_feature_selection_confusion
+from feature_select import compare, plot_feature_selection_scatter, plot_matrix, calculate_accuracy
 
 # you may use these colours to produce the scatter plots
 CLASS_1_C = r'#3366ff'
 CLASS_2_C = r'#cc3300'
 CLASS_3_C = r'#ffc34d'
 
-MODES = ['feature_sel', 'knn', 'alt', 'knn_3d', 'knn_pca']
+MODES = ['feature_sel', 'knn', 'knn_accuracy',
+         'knn_confusion' 'alt', 'knn_3d', 'knn_pca']
 
 
 def feature_selection(train_set, train_labels, **kwargs):
@@ -37,17 +38,80 @@ def feature_selection(train_set, train_labels, **kwargs):
     return [0, 6]
 
 
-def knn(train_set, train_labels, test_set, k, **kwargs):
+def plot_knn_accuracy(train_set, train_labels, test_set, test_labels):
 
-    train_xs = train_set[:, 0]
-    train_ys = train_set[:, 6]
+    ks = [1, 2, 3, 4, 5, 7]
+    accs = []
+
+    for k in ks:
+
+        pred_labels = knn(train_set, train_labels, test_set, k, 0, 6)
+
+        a = calculate_accuracy(test_labels, pred_labels)
+
+        accs.append([k, a])
+
+    print(accs)
+
+
+def plot_feature_selection_accuracy_matrix(train_set, train_labels, test_set, test_labels, k):
+    n_features = train_set.shape[1]
+    print(train_labels)
+    matrix = np.zeros((n_features, n_features))
+
+    # write your code here
+    for i in range(n_features):
+        for j in range(n_features):
+
+            pred_labels = knn(train_set, train_labels, test_set, k, i, j)
+
+            accuracy = calculate_accuracy(test_labels, pred_labels)
+
+            matrix[i, j] = accuracy
+
+    plot_matrix(matrix, xlabel='feature', ylabel='feature',
+                title='Accuracy with different feature combinations')
+
+    plt.show()
+
+    return matrix
+
+
+def foo(i, j, gt_labels, pred_labels):
+    count = 0
+    for x in range(pred_labels.size):
+        if gt_labels[x] == i:
+            if pred_labels[x] == j:
+                count += 1
+    return count
+
+
+def plot_confusion_matrix(gt_labels, pred_labels):
+    classes = np.unique(gt_labels)
+
+    counts = np.zeros(classes.size)
+    cm = np.zeros((classes.size, classes.size))
+    for i in range(1, classes.size+1):
+        counts[i-1] = np.count_nonzero(gt_labels == i)
+    for i in range(counts.size):
+        for j in range(counts.size):
+            cm[i, j] = (foo(i+1, j+1, gt_labels, pred_labels))/counts[i]
+
+    plot_matrix(cm.transpose())
+    plt.show()
+
+
+def knn(train_set, train_labels, test_set, k, f1, f2, **kwargs):
+
+    train_xs = train_set[:, f1]
+    train_ys = train_set[:, f2]
     train_points = np.array([np.array([x, y])
                              for (x, y) in zip(train_xs, train_ys)])
 
-    test_xs = train_set[:, 0]
-    test_ys = train_set[:, 6]
+    test_xs = test_set[:, f1]
+    test_ys = test_set[:, f2]
     test_points = np.array([np.array([x, y])
-                            for (x, y) in zip(train_xs, train_ys)])
+                            for (x, y) in zip(test_xs, test_ys)])
 
     classes = []
     for test_p in test_points:
@@ -55,29 +119,20 @@ def knn(train_set, train_labels, test_set, k, **kwargs):
         for i, train_p in enumerate(train_points):
             d = np.linalg.norm(test_p - train_p)
             ds.append([d, train_labels[i]])
-
         ds = np.array(ds)
-        ds = np.sort(ds, axis=0)
-        kds = ds[:k][:, 1]
-        print(kds)
-        classes.append(c)
+        # sort ds by distances
+        args = np.argsort(ds, axis=0)
 
-    return ds[:k][:, 1]
-    # mus = get_centroids(xs, ys, train_labels)
+        sort = np.argsort(ds[:, 0])
 
-    # for i, point in enumerate(test_points):
-    #     ds = []
-    #     for mu in mus:
-    #         d = np.linalg.norm(point-mu)
-    #         ds.append(d)
+        ds = np.array([ds[i] for i in sort])
 
-    #     min_d = np.amin(ds)
+        # get first k elements, cast them to int
+        ks = [int(k) for k in ds[:, 1][:k]]
 
-    #     index = np.where(ds == min_d)
-
-    #     c = index[0][0] + 1
-
-    #     classes.append(c)
+        # get the majority element
+        majority_c = Counter(ks).most_common()[0][0]
+        classes.append(majority_c)
 
     return classes
 
@@ -135,6 +190,15 @@ if __name__ == '__main__':
     elif mode == 'knn':
         predictions = knn(train_set, train_labels, test_set, args.k)
         print_predictions(predictions)
+    elif mode == 'knn_accuracy':
+        plot_knn_accuracy(
+            train_set, train_labels, test_set, test_labels)
+        plot_feature_selection_accuracy_matrix(
+            train_set, train_labels, test_set, test_labels, 3)
+    elif mode == 'knn_confusion':
+        pred_labels = np.array(
+            knn(train_set, train_labels, test_set, args.k, 0, 6))
+        plot_confusion_matrix(test_labels, pred_labels)
     elif mode == 'alt':
         predictions = alternative_classifier(train_set, train_labels, test_set)
         print_predictions(predictions)

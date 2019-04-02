@@ -98,28 +98,31 @@ def calculate_accuracy(gt_labels, pred_labels):
     return count / gt_labels.size
 
 
-def plot_feature_selection_confusion(train_set, train_labels):
+def plot_feature_selection_accuracy_matrix(train_set, train_labels, test_set, test_labels, k):
     n_features = train_set.shape[1]
-
+    print(train_labels)
     matrix = np.zeros((n_features, n_features))
 
     # write your code here
     for i in range(n_features):
         for j in range(n_features):
-            xs = train_set[:, i]
-            ys = train_set[:, j]
 
-            pred_labels = nearest_centroid_classify(
-                train_set, train_labels, i, j)
+            pred_labels = knn(train_set, train_labels, test_set, k, i, j)
 
-            accuracy = calculate_accuracy(train_labels, pred_labels)
+            accuracy = calculate_accuracy(test_labels, pred_labels)
 
             matrix[i, j] = accuracy
 
     plot_matrix(matrix, xlabel='feature', ylabel='feature',
                 title='Accuracy with different feature combinations')
 
+    plt.show()
+
     return matrix
+
+
+def plot_knn_confusion_matrix(train_set, train_labels, test_set, k):
+    return []
 
 
 def plot_feature_selection_scatter(train_set, train_labels):
