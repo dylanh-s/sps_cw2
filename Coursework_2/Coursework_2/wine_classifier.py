@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Skeleton code for CW2 submission. 
+Skeleton code for CW2 submission.
 We suggest you implement your code in the provided functions
 Make sure to use our print_features() and print_predictions() functions
 to print your results
@@ -37,6 +37,9 @@ def feature_selection(train_set, train_labels, **kwargs):
     # return np.where(matrix == np.amax(matrix))[0]
     return [0, 6]
 
+def plot_alt_accuracy( train_set, train_labels, test_set, test_labels):
+    pred_labels = alternative_classifier(train_set,train_labels,test_set, 0, 6)
+    print(calculate_accuracy(test_labels, pred_labels))
 
 def plot_knn_accuracy(train_set, train_labels, test_set, test_labels):
 
@@ -136,17 +139,99 @@ def knn(train_set, train_labels, test_set, k, f1, f2, **kwargs):
 
     return classes
 
+def alternative_post_likelihood(mean, var, p, n_classes=3):
+    #posterior probability for class c P(x|c) = np.prod ( p(x_i|c) for all features )
+    #p(x_i|c) = (1/np.sqrt(2*3.14*vars[i]) * np.exp(-0.5 * np.power((x - means[i]),2)/vars[i]
+    n_features = mean[0].size
+    probs = []
+    #for each class
+    for c in range(0,n_classes):
+        prod = 1
+        #for each feature
+        for j in range(0,n_features):
+            prod = prod * (1/np.sqrt(2*3.14*var[c][j]) * np.exp(-0.5 * np.power((p[j] - mean[c][j]),2)/var[c][j]))
+        probs.append(prod)
+    return probs
 
-def alternative_classifier(train_set, train_labels, test_set, **kwargs):
-    # write your code here and make sure you return the predictions at the end of
-    # the function
-    return []
+def alternative_classifier(train_set, train_labels, test_set, f1, f2, **kwargs):
+    train_xs = train_set[:, f1]
+    train_ys = train_set[:, f2]
+    train_points = np.array([np.array([x, y])
+                             for (x, y) in zip(train_xs, train_ys)])
+
+    test_xs = test_set[:, f1]
+    test_ys = test_set[:, f2]
+    test_points = np.array([np.array([x, y])
+                            for (x, y) in zip(test_xs, test_ys)])
+
+    classes = np.unique(train_labels)
+
+    #priors of each class
+    counts = np.zeros(classes.size)
+    priors = np.zeros(classes.size)
+    for i in range(1, classes.size+1):
+        counts[i-1] = np.count_nonzero(train_labels == i)
+        priors[i-1] = counts[i-1]/train_labels.size
+    #print(priors)
+
+    #mean of each class
+    x_means = [np.mean(train_xs[train_labels == c]) for c in classes]
+    y_means = [np.mean(train_ys[train_labels == c]) for c in classes]
+    means = np.array([np.array([x, y]) for (x, y) in zip(x_means, y_means)])
+    #print(means)
+
+    #var of each class
+    x_vars = [np.var(train_xs[train_labels == c]) for c in classes]
+    y_vars = [np.var(train_ys[train_labels == c]) for c in classes]
+    vars = np.array([np.array([x, y]) for (x, y) in zip(x_vars, y_vars)])
+
+    predictions = []
+    #classify points
+    for test_p in test_points:
+        options = np.ones(classes.size)
+        post_prob_c = alternative_post_likelihood(means,vars,test_p)
+        for i in range(0,classes.size):
+            options[i] = priors[i] * post_prob_c[i]
+        predictions.append(np.argmax(options) + 1)
+    return predictions
 
 
-def knn_three_features(train_set, train_labels, test_set, k, **kwargs):
-    # write your code here and make sure you return the predictions at the end of
-    # the function
-    return []
+
+def knn_three_features(train_set, train_labels, test_set, k, f1, f2, f3, **kwargs):
+    train_xs = train_set[:, f1]
+    train_ys = train_set[:, f2]
+    train_zs = train_set[:, f3]
+    train_points = np.array([np.array([x, y, z])
+                             for (x, y, z) in zip(train_xs, train_ys, train_zs)])
+
+    test_xs = test_set[:, f1]
+    test_ys = test_set[:, f2]
+    test_zs = test_set[:, f3]
+    test_points = np.array([np.array([x, y, z])
+                            for (x, y, z) in zip(test_xs, test_ys, test_zs)])
+
+    classes = []
+    for test_p in test_points:
+        ds = []
+        for i, train_p in enumerate(train_points):
+            d = np.linalg.norm(test_p - train_p)
+            ds.append([d, train_labels[i]])
+        ds = np.array(ds)
+        # sort ds by distances
+        args = np.argsort(ds, axis=0)
+
+        sort = np.argsort(ds[:, 0])
+
+        ds = np.array([ds[i] for i in sort])
+
+        # get first k elements, cast them to int
+        ks = [int(k) for k in ds[:, 1][:k]]
+
+        # get the majority element
+        majority_c = Counter(ks).most_common()[0][0]
+        classes.append(majority_c)
+
+    return classes
 
 
 def knn_pca(train_set, train_labels, test_set, k, n_components=2, **kwargs):
@@ -188,7 +273,7 @@ if __name__ == '__main__':
         selected_features = feature_selection(train_set, train_labels)
         print_features(selected_features)
     elif mode == 'knn':
-        predictions = knn(train_set, train_labels, test_set, args.k)
+        predictions = knn(train_set, train_labels, test_set, args.k, 0, 6)
         print_predictions(predictions)
     elif mode == 'knn_accuracy':
         plot_knn_accuracy(
@@ -200,11 +285,14 @@ if __name__ == '__main__':
             knn(train_set, train_labels, test_set, args.k, 0, 6))
         plot_confusion_matrix(test_labels, pred_labels)
     elif mode == 'alt':
-        predictions = alternative_classifier(train_set, train_labels, test_set)
+        predictions = alternative_classifier(train_set, train_labels, test_set, 0, 6)
         print_predictions(predictions)
+    elif mode == 'alt_accuracy':
+        plot_alt_accuracy(train_set, train_labels, test_set, test_labels)
     elif mode == 'knn_3d':
         predictions = knn_three_features(
-            train_set, train_labels, test_set, args.k)
+            train_set, train_labels, test_set, args.k, 0, 6, 1)
+        print(calculate_accuracy(test_labels, predictions))
         print_predictions(predictions)
     elif mode == 'knn_pca':
         prediction = knn_pca(train_set, train_labels, test_set, args.k)
