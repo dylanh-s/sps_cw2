@@ -9,11 +9,11 @@ def plot_matrix(matrix, ax=None, xlabel=None, ylabel=None, title=None):
     Displays a given matrix as an image.
 
     Args:
-        - matrix: the matrix to be displayed        
-        - ax: the matplotlib axis where to overlay the plot. 
-          If you create the figure with `fig, fig_ax = plt.subplots()` simply pass `ax=fig_ax`. 
-          If you do not explicitily create a figure, then pass no extra argument.  
-          In this case the  current axis (i.e. `plt.gca())` will be used        
+        - matrix: the matrix to be displayed
+        - ax: the matplotlib axis where to overlay the plot.
+          If you create the figure with `fig, fig_ax = plt.subplots()` simply pass `ax=fig_ax`.
+          If you do not explicitily create a figure, then pass no extra argument.
+          In this case the  current axis (i.e. `plt.gca())` will be used
     """
     if ax is None:
         ax = plt.gca()
@@ -130,7 +130,7 @@ def plot_feature_selection_scatter(train_set, train_labels):
 
     fig, ax = plt.subplots(n_features, n_features, squeeze=False)
 
-    plt.rc('figure', figsize=(12, 8), dpi=110)
+    plt.rc('figure', figsize=(18, 12), dpi=110)
     plt.rc('font', size=12)
     plt.subplots_adjust(left=0.01, right=0.99, top=0.99,
                         bottom=0.01, wspace=0.2, hspace=0.4)
@@ -145,7 +145,7 @@ def plot_feature_selection_scatter(train_set, train_labels):
         for j in range(n_features):
             xs = train_set[:, i]
             ys = train_set[:, j]
-            colors = [class_colours[label - 1] for label in train_labels]
+            colors = [class_colours[int(label) - 1] for label in train_labels]
 
             ax[i, j].set_yticklabels([])
             ax[i, j].set_xticklabels([])
@@ -161,8 +161,8 @@ def compare(train_set, train_labels):
 
     plt.rc('figure', figsize=(12, 8), dpi=110)
     plt.rc('font', size=12)
-    plt.subplots_adjust(left=0.01, right=0.99, top=0.99,
-                        bottom=0.01, wspace=0.2, hspace=0.4)
+    plt.subplots_adjust(left=0.1, right=0.9, top=0.9,
+                        bottom=0.1, wspace=0.2, hspace=0.4)
 
     class_1_colour = r'#3366ff'
     class_2_colour = r'#cc3300'

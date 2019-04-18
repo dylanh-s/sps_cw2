@@ -29,8 +29,8 @@ MODES = ['feature_sel', 'knn', 'knn_accuracy',
 
 def feature_selection(train_set, train_labels, **kwargs):
 
-    compare(train_set, [int(i) for i in train_labels])
-
+    #compare(train_set, [int(i) for i in train_labels])
+    #plot_feature_selection_scatter(train_set, train_labels)
     plt.show()
     # TODO call plt.show() here to plot the confusion matrix for use in report
 
@@ -45,7 +45,7 @@ def plot_knn_accuracy(train_set, train_labels, test_set, test_labels):
 
     ks = [1, 2, 3, 4, 5, 7]
     accs = []
-
+    
     for k in ks:
 
         pred_labels = knn(train_set, train_labels, test_set, k, 0, 6)
@@ -99,10 +99,26 @@ def plot_confusion_matrix(gt_labels, pred_labels):
     for i in range(counts.size):
         for j in range(counts.size):
             cm[i, j] = (foo(i+1, j+1, gt_labels, pred_labels))/counts[i]
-
+    #return cm
     plot_matrix(cm.transpose())
     plt.show()
 
+def plot_confusion_matrices(train_set, train_labels, test_set, test_labels, f1, f2):
+    ks = np.array([1, 3, 5, 7])
+
+    fig, fig_ax = plt.subplots(ks.size, squeeze=True)
+
+    plt.rc('figure', figsize=(18, 30), dpi=110)
+    plt.rc('font', size=12)
+    plt.subplots_adjust(left=0.1, right=0.9, top=0.9,
+                        bottom=0.1, wspace=0.2, hspace=0.4)
+    count = 0
+    for a in fig_ax:
+        pred_labels = np.array(knn(train_set, train_labels, test_set, ks[count], 0, 6))
+        cm = plot_confusion_matrix(test_labels, pred_labels)
+        plot_matrix(cm, ax=a, title = "k = {}".format(ks[count]))
+        count = count + 1
+    plt.show()
 
 def knn(train_set, train_labels, test_set, k, f1, f2, **kwargs):
 
@@ -140,7 +156,7 @@ def knn(train_set, train_labels, test_set, k, f1, f2, **kwargs):
     return classes
 
 def alternative_post_likelihood(mean, var, p, n_classes=3):
-    #posterior probability for class c P(x|c) = np.prod ( p(x_i|c) for all features )
+    #probability for class c P(x|c) = np.prod ( p(x_i|c) for all features )
     #p(x_i|c) = (1/np.sqrt(2*3.14*vars[i]) * np.exp(-0.5 * np.power((x - means[i]),2)/vars[i]
     n_features = mean[0].size
     probs = []
@@ -194,7 +210,6 @@ def alternative_classifier(train_set, train_labels, test_set, f1, f2, **kwargs):
             options[i] = priors[i] * post_prob_c[i]
         predictions.append(np.argmax(options) + 1)
     return predictions
-
 
 
 def knn_three_features(train_set, train_labels, test_set, k, f1, f2, f3, **kwargs):
@@ -271,6 +286,7 @@ if __name__ == '__main__':
                                                                test_labels_path=args.test_labels_path)
     if mode == 'feature_sel':
         selected_features = feature_selection(train_set, train_labels)
+        plot_feature_selection_accuracy_matrix(train_set, train_labels, test_set, test_labels, 3)
         print_features(selected_features)
     elif mode == 'knn':
         predictions = knn(train_set, train_labels, test_set, args.k, 0, 6)
@@ -278,17 +294,24 @@ if __name__ == '__main__':
     elif mode == 'knn_accuracy':
         plot_knn_accuracy(
             train_set, train_labels, test_set, test_labels)
-        plot_feature_selection_accuracy_matrix(
-            train_set, train_labels, test_set, test_labels, 3)
     elif mode == 'knn_confusion':
         pred_labels = np.array(
-            knn(train_set, train_labels, test_set, args.k, 0, 6))
+            knn(train_set, train_labels, test_set, 1, 0, 6))
         plot_confusion_matrix(test_labels, pred_labels)
+        pred_labels = np.array(
+            knn(train_set, train_labels, test_set, 3, 0, 6))
+        plot_confusion_matrix(test_labels, pred_labels)
+        pred_labels = np.array(
+            knn(train_set, train_labels, test_set, 5, 0, 6))
+        plot_confusion_matrix(test_labels, pred_labels)
+        #plot_confusion_matrices(train_set, train_labels, test_set, test_labels, 0, 6)
     elif mode == 'alt':
         predictions = alternative_classifier(train_set, train_labels, test_set, 0, 6)
         print_predictions(predictions)
     elif mode == 'alt_accuracy':
+        predictions = np.array(alternative_classifier(train_set, train_labels, test_set, 0, 6))
         plot_alt_accuracy(train_set, train_labels, test_set, test_labels)
+        plot_confusion_matrix(test_labels, predictions)
     elif mode == 'knn_3d':
         predictions = knn_three_features(
             train_set, train_labels, test_set, args.k, 0, 6, 1)
