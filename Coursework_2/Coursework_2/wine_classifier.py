@@ -10,6 +10,8 @@ to print your results
 from __future__ import print_function
 from collections import Counter
 
+from sklearn.neighbors import KNeighborsClassifier  
+
 
 import argparse
 import numpy as np
@@ -19,6 +21,8 @@ import matplotlib as mpl
 import mpl_toolkits.mplot3d as mpl_t
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import normalize
+from sklearn.preprocessing import StandardScaler
+
 from utilities import load_data, print_features, print_predictions
 from feature_select import compare, plot_feature_selection_scatter, plot_matrix, calculate_accuracy
 
@@ -96,9 +100,9 @@ def plot_knn_accuracy(train_set, train_labels, test_set, test_labels):
 
         a = calculate_accuracy(test_labels, pred_labels)
 
-        accs.append([k, a])
+        accs.append(a)
 
-    print(accs)
+    plot_accuracy_bar(np.array(accs))
 
 
 def plot_feature_selection_accuracy_matrix(train_set, train_labels, test_set, test_labels, k):
@@ -151,6 +155,9 @@ def plot_confusion_matrix(gt_labels, pred_labels, ax=None, title=None):
 
 def compare_confusion_matricies(pred1, title1, pred2, title2, test_labels):
     fig, ax = plt.subplots(1, 2)
+
+    for a in ax:
+        a.set_aspect('equal')
 
     plot_confusion_matrix(test_labels, pred1, ax=ax[0], title=title1)
     plot_confusion_matrix(test_labels, pred2, ax=ax[1], title=title2)
@@ -212,7 +219,7 @@ def knn(train_set, train_labels, test_set, k, f1, f2, **kwargs):
     if (cols == 2):
         f1 = 0
         f2 = 1
-
+        
     train_xs = train_set[:, f1]
     train_ys = train_set[:, f2]
     train_points = np.array([np.array([x, y])
@@ -225,11 +232,13 @@ def knn(train_set, train_labels, test_set, k, f1, f2, **kwargs):
 
     classes = []
     for test_p in test_points:
+        # we find euqlidean distances
         ds = []
         for i, train_p in enumerate(train_points):
             d = np.linalg.norm(test_p - train_p)
             ds.append([d, train_labels[i]])
         ds = np.array(ds)
+
         # sort ds by distances
         args = np.argsort(ds, axis=0)
 
@@ -342,21 +351,60 @@ def knn_three_features(train_set, train_labels, test_set, k, f1, f2, f3, **kwarg
 
 
 def knn_pca(train_set, train_labels, test_set, k, n_components=2, **kwargs):
-    # write your code here and make sure you return the predictions at the end of
-    # the function
 
     # get the manuall selected set
     feature_sel_set = np.array(list(zip(train_set[:, 0], train_set[:, 6])))
 
     pca = PCA(n_components=n_components)
-    model = pca.fit(train_set)
-    scipy_set = pca.transform(train_set)
+    
+    # standardise
+    s = StandardScaler().fit(train_set)
+
+    # Apply transform to both the training set and the test set.
+    train_set = s.transform(train_set)
+    test_set = s.transform(test_set)
+
+    # fit 
+    pca.fit(train_set)
+
+    # transform both
+    train_set = pca.transform(train_set)
     test_set = pca.transform(test_set)
 
-    # plotting the pca vs manually selected
     # plot_scatter_comparison(scipy_set, feature_sel_set, train_labels)
 
-    return knn(scipy_set, train_labels, test_set, k, 0, 6 )
+    return knn(train_set, train_labels, test_set, k, 0, 6 )
+
+def plot_accuracy_bar(accs, labels=None):
+    ks = [1, 2, 3, 4, 5, 7]
+    fig, ax = plt.subplots()
+    
+    ks = np.array(ks)
+    
+    bar_width=0.45
+
+    if (accs.ndim == 1):
+        bar_width = 0.73
+        ax.bar(ks, accs, bar_width, color=colors[1], align="center",label="Title")
+        for i, k in enumerate(ks):
+            t = np.round(accs[i], 2)
+            ax.text(k , 0.5, t, horizontalalignment='center', color="white")
+    else:
+        for i, acc in enumerate(accs):
+            offset = i * bar_width
+            ax.bar(ks + offset, acc, bar_width, color=colors[i % 3], align="center",label=labels[i])
+            for j, k in enumerate(ks):
+                t = np.round(acc[j], 2)
+                ax.text(k + offset , 0.5, t, horizontalalignment='center', color="white")
+            
+
+    ax.set_xlabel('Value of k')
+    ax.set_ylabel('Accuracy')
+    ax.set_xticks((1,2,3,4,5,7))
+   
+    if (labels != None):
+        ax.legend()
+
 
 def manual_vs_pca(train_set, train_labels, test_set, test_labels):
     ks = [1, 2, 3, 4, 5, 7]
@@ -377,6 +425,24 @@ def manual_vs_pca(train_set, train_labels, test_set, test_labels):
 
         # display confusion matricies alongisde each other
         compare_confusion_matricies(acc[3], "Manual", acc[4], "PCA", test_labels)
+
+
+    man_accs = [acc[1] for acc in accs]
+    pca_accs = [acc[2] for acc in accs]
+
+    plot_accuracy_bar(np.array([man_accs, pca_accs]), ["Manual", "PSA"])
+
+    # ks = np.array(ks)
+    # bar_width=0.35
+
+    # ax.bar(ks, man_accs, bar_width, color=CLASS_1_C, label="Manual")
+    # ax.bar(ks + bar_width, pca_accs, bar_width, color=CLASS_2_C, label="PCA")
+
+    # ax.set_xlabel('Value of k')
+    # ax.set_ylabel('Accuracy')
+    # ax.set_xticks((1,2,3,4,5,7))
+   
+    # ax.legend()
 
 
 
@@ -420,6 +486,7 @@ if __name__ == '__main__':
     elif mode == 'knn_accuracy':
         plot_knn_accuracy(
             train_set, train_labels, test_set, test_labels)
+        plt.show()
     elif mode == 'knn_confusion':
         pred_labels = np.array(
             knn(train_set, train_labels, test_set, 1, 0, 6))

@@ -25,7 +25,7 @@ def plot_matrix(matrix, ax=None, xlabel=None, ylabel=None, title=None):
     handle = ax.imshow(matrix, cmap=plt.get_cmap('summer'), aspect="equal")
 
     # colorbar
-    plt.colorbar(handle)
+    # plt.colorbar(handle)
 
     # aspect
     ax.set_aspect('equal')
@@ -167,9 +167,9 @@ def compare(train_set, train_labels):
     plt.subplots_adjust(left=0.1, right=0.9, top=0.9,
                         bottom=0.1, wspace=0.2, hspace=0.4)
 
-    class_1_colour = r'#3366ff' #blue
-    class_2_colour = r'#cc3300' #red
-    class_3_colour = r'#ffc34d' #yellow
+    class_1_colour = r'#3366ff'  # blue
+    class_2_colour = r'#cc3300'  # red
+    class_3_colour = r'#ffc34d'  # yellow
 
     class_colours = [class_1_colour, class_2_colour, class_3_colour]
 
