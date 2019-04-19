@@ -15,16 +15,10 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
-<<<<<<< HEAD
 import matplotlib as mpl
 import mpl_toolkits.mplot3d as mpl_t
-#from mpl_toolkits import Axes3
-=======
 from sklearn.decomposition import PCA
-
-
->>>>>>> PCA
-
+from sklearn.preprocessing import normalize
 from utilities import load_data, print_features, print_predictions
 from feature_select import compare, plot_feature_selection_scatter, plot_matrix, calculate_accuracy
 
@@ -48,31 +42,44 @@ def feature_selection(train_set, train_labels, **kwargs):
     # return np.where(matrix == np.amax(matrix))[0]
     return [0, 6]
 
-<<<<<<< HEAD
 def feature_sel_3d(train_set, train_labels, **kwargs):
+
     n_features = train_set.shape[1]
-
-    class_1_colour = r'#3366ff'
-    class_2_colour = r'#cc3300'
-    class_3_colour = r'#ffc34d'
-
-    class_colours = [class_1_colour, class_2_colour, class_3_colour]
-    colors = [class_colours[int(label) - 1] for label in train_labels]
-
+    class_colors = [colors[int(label) - 1] for label in train_labels]
+    """
     for i in range(0,n_features):
         fig = plt.figure()
         ax = mpl_t.Axes3D(fig)
-        ax.scatter(train_set[:,0], train_set[:,6], train_set[:,i], c=colors)
+        ax.scatter(train_set[:,0], train_set[:,6], train_set[:,i], c=class_colors)
         ax.set_zlabel("{}".format(i))
         plt.xlabel("0")
         plt.ylabel("6")
         plt.title("{}".format(i))
         plt.show()
+    """
+    feature_sel_set = np.array(list(zip(train_set[:, 0], train_set[:, 6])))
+    pca = PCA(n_components=1)
+    model = pca.fit(train_set)
+    scipy_set = pca.transform(train_set)
+    fig , ax = plt.subplots(2, int(n_features/2) + 1)
+    plt.subplots_adjust(left=0.1, right=0.9, top=0.9,
+                        bottom=0.1, wspace=0.4, hspace=0.6)
+    for i, a in enumerate(ax[0,:]):
+        xs = np.interp(scipy_set[:], (scipy_set[:].min(), scipy_set[:].max()),(-1,1))
+        ys = np.interp(train_set[:,i], (train_set[:,i].min(), train_set[:,i].max()),(-1,1))
+        a.scatter(xs, ys, c=class_colors, s=10)
+        a.set_xlabel("0,6")
+        a.set_title("ftr {}".format(i))
+    for i, a in enumerate(ax[1,:]):
+        if i != 6 :
+            i = i+7
+            a.scatter(np.interp(scipy_set[:], (scipy_set[:].min(), scipy_set[:].max()),(-1,1)), np.interp(train_set[:,i], (train_set[:,i].min(), train_set[:,i].max()), (-1,1)), c=class_colors, s=10 )
+            #a.set_xlabel("0,6")
+            #a.set_ylabel("{}".format(i))
+            a.set_title("ftr {}".format(i))
+            i = i-7
+    plt.show()
 
-=======
-# PLOT
-# ACCURACY
->>>>>>> PCA
 def plot_alt_accuracy( train_set, train_labels, test_set, test_labels):
     pred_labels = alternative_classifier(train_set,train_labels,test_set, 0, 6)
     print(calculate_accuracy(test_labels, pred_labels))
@@ -131,23 +138,23 @@ def plot_confusion_matrix(gt_labels, pred_labels, ax=None, title=None):
 
     counts = np.zeros(classes.size)
     cm = np.zeros((classes.size, classes.size))
-    
+
     for i in range(1, classes.size+1):
         counts[i-1] = np.count_nonzero(gt_labels == i)
-    
+
     for i in range(counts.size):
         for j in range(counts.size):
             cm[i, j] = (foo(i + 1, j + 1, gt_labels, pred_labels))/counts[i]
 
-   
+
     plot_matrix(cm.transpose(), ax=ax, title=title)
 
 def compare_confusion_matricies(pred1, title1, pred2, title2, test_labels):
     fig, ax = plt.subplots(1, 2)
-    
+
     plot_confusion_matrix(test_labels, pred1, ax=ax[0], title=title1)
     plot_confusion_matrix(test_labels, pred2, ax=ax[1], title=title2)
-    
+
 
 
 
@@ -180,13 +187,13 @@ def plot_scatter_comparison(scipy_set, my_set, train_labels):
     cs = [colors[int(label) - 1] for label in train_labels]
 
     fig, ax = plt.subplots(1, 2)
-   
+
     xs_s = scipy_set[:, 0]
     ys_s = scipy_set[:, 1]
-    
+
     xs_m = my_set[:, 0]
     ys_m = my_set[:, 1]
-    
+
     ax[1].scatter(xs_s, ys_s, c=cs)
     ax[1].set_title('Scipy PCA')
 
@@ -200,12 +207,12 @@ def plot_scatter_comparison(scipy_set, my_set, train_labels):
 # KNN
 def knn(train_set, train_labels, test_set, k, f1, f2, **kwargs):
     cols = train_set.shape[1]
-    
+
     # if the train and test sets have already been reduced
     if (cols == 2):
         f1 = 0
         f2 = 1
-    
+
     train_xs = train_set[:, f1]
     train_ys = train_set[:, f2]
     train_points = np.array([np.array([x, y])
@@ -348,7 +355,7 @@ def knn_pca(train_set, train_labels, test_set, k, n_components=2, **kwargs):
 
     # plotting the pca vs manually selected
     # plot_scatter_comparison(scipy_set, feature_sel_set, train_labels)
- 
+
     return knn(scipy_set, train_labels, test_set, k, 0, 6 )
 
 def manual_vs_pca(train_set, train_labels, test_set, test_labels):
@@ -363,14 +370,14 @@ def manual_vs_pca(train_set, train_labels, test_set, test_labels):
         pca_acc = calculate_accuracy(test_labels, pca_pred)
 
         accs.append([k, man_acc, pca_acc, man_pred, pca_pred])
-    
+
     for acc in accs:
         # print accuracies
         print("Accuracies for %s cluster(s):\n \t - %s for manual selection \n\t - %s for pca" % (acc[0], acc[1], acc[2]))
 
         # display confusion matricies alongisde each other
         compare_confusion_matricies(acc[3], "Manual", acc[4], "PCA", test_labels)
-    
+
 
 
 
