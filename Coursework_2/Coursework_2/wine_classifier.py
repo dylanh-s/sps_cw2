@@ -42,7 +42,6 @@ def feature_selection(train_set, train_labels, **kwargs):
     return [0, 6]
 
 def feature_sel_3d(train_set, train_labels, **kwargs):
-
     n_features = train_set.shape[1]
 
     class_1_colour = r'#3366ff'
@@ -58,11 +57,9 @@ def feature_sel_3d(train_set, train_labels, **kwargs):
         ax.scatter(train_set[:,0], train_set[:,6], train_set[:,i], c=colors)
         ax.set_zlabel("{}".format(i))
         plt.xlabel("0")
-        plt.ylabel("0")
+        plt.ylabel("6")
         plt.title("{}".format(i))
         plt.show()
-
-
 
 def plot_alt_accuracy( train_set, train_labels, test_set, test_labels):
     pred_labels = alternative_classifier(train_set,train_labels,test_set, 0, 6)
