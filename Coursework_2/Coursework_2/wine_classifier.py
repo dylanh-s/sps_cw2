@@ -15,9 +15,15 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
+<<<<<<< HEAD
 import matplotlib as mpl
 import mpl_toolkits.mplot3d as mpl_t
 #from mpl_toolkits import Axes3
+=======
+from sklearn.decomposition import PCA
+
+
+>>>>>>> PCA
 
 from utilities import load_data, print_features, print_predictions
 from feature_select import compare, plot_feature_selection_scatter, plot_matrix, calculate_accuracy
@@ -27,12 +33,13 @@ CLASS_1_C = r'#3366ff'
 CLASS_2_C = r'#cc3300'
 CLASS_3_C = r'#ffc34d'
 
+colors = [CLASS_1_C, CLASS_2_C, CLASS_3_C]
+
 MODES = ['feature_sel', 'knn', 'knn_accuracy',
-         'knn_confusion' 'alt', 'knn_3d', 'knn_pca']
+         'knn_confusion' 'alt', 'knn_3d', 'knn_pca', 'knn_pca_evaluation']
 
-
+# FEATURE SELECT
 def feature_selection(train_set, train_labels, **kwargs):
-
     #compare(train_set, [int(i) for i in train_labels])
     #plot_feature_selection_scatter(train_set, train_labels)
     plt.show()
@@ -41,6 +48,7 @@ def feature_selection(train_set, train_labels, **kwargs):
     # return np.where(matrix == np.amax(matrix))[0]
     return [0, 6]
 
+<<<<<<< HEAD
 def feature_sel_3d(train_set, train_labels, **kwargs):
     n_features = train_set.shape[1]
 
@@ -61,9 +69,14 @@ def feature_sel_3d(train_set, train_labels, **kwargs):
         plt.title("{}".format(i))
         plt.show()
 
+=======
+# PLOT
+# ACCURACY
+>>>>>>> PCA
 def plot_alt_accuracy( train_set, train_labels, test_set, test_labels):
     pred_labels = alternative_classifier(train_set,train_labels,test_set, 0, 6)
     print(calculate_accuracy(test_labels, pred_labels))
+
 
 def plot_knn_accuracy(train_set, train_labels, test_set, test_labels):
 
@@ -112,20 +125,32 @@ def foo(i, j, gt_labels, pred_labels):
                 count += 1
     return count
 
-
-def plot_confusion_matrix(gt_labels, pred_labels):
+# CONFUSION MATRIX
+def plot_confusion_matrix(gt_labels, pred_labels, ax=None, title=None):
     classes = np.unique(gt_labels)
 
     counts = np.zeros(classes.size)
     cm = np.zeros((classes.size, classes.size))
+    
     for i in range(1, classes.size+1):
         counts[i-1] = np.count_nonzero(gt_labels == i)
+    
     for i in range(counts.size):
         for j in range(counts.size):
-            cm[i, j] = (foo(i+1, j+1, gt_labels, pred_labels))/counts[i]
-    #return cm
-    plot_matrix(cm.transpose())
-    plt.show()
+            cm[i, j] = (foo(i + 1, j + 1, gt_labels, pred_labels))/counts[i]
+
+   
+    plot_matrix(cm.transpose(), ax=ax, title=title)
+
+def compare_confusion_matricies(pred1, title1, pred2, title2, test_labels):
+    fig, ax = plt.subplots(1, 2)
+    
+    plot_confusion_matrix(test_labels, pred1, ax=ax[0], title=title1)
+    plot_confusion_matrix(test_labels, pred2, ax=ax[1], title=title2)
+    
+
+
+
 
 # THIS DOESNT WORK :(
 def plot_confusion_matrices(train_set, train_labels, test_set, test_labels, f1, f2):
@@ -145,8 +170,42 @@ def plot_confusion_matrices(train_set, train_labels, test_set, test_labels, f1, 
         count = count + 1
     plt.show()
 
-def knn(train_set, train_labels, test_set, k, f1, f2, **kwargs):
+# SCATTER
+def plot_scatter(xs, ys, train_labels, title="Title"):
+    c = [colors[int(label) - 1] for label in train_labels]
+    plt.scatter(xs, ys, c=c)
+    plt.show()
 
+def plot_scatter_comparison(scipy_set, my_set, train_labels):
+    cs = [colors[int(label) - 1] for label in train_labels]
+
+    fig, ax = plt.subplots(1, 2)
+   
+    xs_s = scipy_set[:, 0]
+    ys_s = scipy_set[:, 1]
+    
+    xs_m = my_set[:, 0]
+    ys_m = my_set[:, 1]
+    
+    ax[1].scatter(xs_s, ys_s, c=cs)
+    ax[1].set_title('Scipy PCA')
+
+    ax[0].scatter(xs_m, ys_m, c=cs)
+    ax[0].set_title('Manual feature select')
+
+    plt.show()
+
+
+# CLASSIFIERS
+# KNN
+def knn(train_set, train_labels, test_set, k, f1, f2, **kwargs):
+    cols = train_set.shape[1]
+    
+    # if the train and test sets have already been reduced
+    if (cols == 2):
+        f1 = 0
+        f2 = 1
+    
     train_xs = train_set[:, f1]
     train_ys = train_set[:, f2]
     train_points = np.array([np.array([x, y])
@@ -178,7 +237,7 @@ def knn(train_set, train_labels, test_set, k, f1, f2, **kwargs):
         majority_c = Counter(ks).most_common()[0][0]
         classes.append(majority_c)
 
-    return classes
+    return np.array(classes)
 
 def alternative_post_likelihood(mean, var, p, n_classes=3):
     #probability for class c P(x|c) = np.prod ( p(x_i|c) for all features )
@@ -274,10 +333,45 @@ def knn_three_features(train_set, train_labels, test_set, k, f1, f2, f3, **kwarg
     return classes
 
 
+
 def knn_pca(train_set, train_labels, test_set, k, n_components=2, **kwargs):
     # write your code here and make sure you return the predictions at the end of
     # the function
-    return []
+
+    # get the manuall selected set
+    feature_sel_set = np.array(list(zip(train_set[:, 0], train_set[:, 6])))
+
+    pca = PCA(n_components=n_components)
+    model = pca.fit(train_set)
+    scipy_set = pca.transform(train_set)
+    test_set = pca.transform(test_set)
+
+    # plotting the pca vs manually selected
+    # plot_scatter_comparison(scipy_set, feature_sel_set, train_labels)
+ 
+    return knn(scipy_set, train_labels, test_set, k, 0, 6 )
+
+def manual_vs_pca(train_set, train_labels, test_set, test_labels):
+    ks = [1, 2, 3, 4, 5, 7]
+    accs = []
+
+    for k in ks:
+        man_pred = knn(train_set, train_labels, test_set, k , 0 , 6).astype(np.int)
+        pca_pred = knn_pca(train_set, train_labels, test_set, k, n_components=2).astype(np.int)
+
+        man_acc = calculate_accuracy(test_labels, man_pred)
+        pca_acc = calculate_accuracy(test_labels, pca_pred)
+
+        accs.append([k, man_acc, pca_acc, man_pred, pca_pred])
+    
+    for acc in accs:
+        # print accuracies
+        print("Accuracies for %s cluster(s):\n \t - %s for manual selection \n\t - %s for pca" % (acc[0], acc[1], acc[2]))
+
+        # display confusion matricies alongisde each other
+        compare_confusion_matricies(acc[3], "Manual", acc[4], "PCA", test_labels)
+    
+
 
 
 def parse_args():
@@ -329,7 +423,6 @@ if __name__ == '__main__':
         pred_labels = np.array(
             knn(train_set, train_labels, test_set, 5, 0, 6))
         plot_confusion_matrix(test_labels, pred_labels)
-        #plot_confusion_matrices(train_set, train_labels, test_set, test_labels, 0, 6)
     elif mode == 'alt':
         predictions = alternative_classifier(train_set, train_labels, test_set, 0, 6)
         print_predictions(predictions)
@@ -348,6 +441,9 @@ if __name__ == '__main__':
     elif mode == 'knn_pca':
         prediction = knn_pca(train_set, train_labels, test_set, args.k)
         print_predictions(prediction)
+    elif mode == 'knn_pca_evaluation':
+        manual_vs_pca(train_set, train_labels, test_set, test_labels)
+        plt.show()
     else:
         raise Exception(
             'Unrecognised mode: {}. Possible modes are: {}'.format(mode, MODES))

@@ -27,18 +27,21 @@ def plot_matrix(matrix, ax=None, xlabel=None, ylabel=None, title=None):
     # colorbar
     plt.colorbar(handle)
 
+    # aspect
+    ax.set_aspect('equal')
+
     # labels
     ax.yaxis.set_major_locator(mticker.MaxNLocator(integer=True))
     ax.xaxis.set_major_locator(mticker.MaxNLocator(integer=True))
 
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
 
     # text
     for x in range(matrix.shape[0]):
         for y in range(matrix.shape[1]):
-            plt.text(x, y, matrix[x, y], horizontalalignment='center')
+            ax.text(x, y, matrix[x, y], horizontalalignment='center')
 
 
 def nearest_centroid_classify(train__set, labels, f1=0, f2=1):
