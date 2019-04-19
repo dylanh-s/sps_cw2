@@ -10,10 +10,14 @@ to print your results
 from __future__ import print_function
 from collections import Counter
 
+
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
+import matplotlib as mpl
+import mpl_toolkits.mplot3d as mpl_t
+#from mpl_toolkits import Axes3
 
 from utilities import load_data, print_features, print_predictions
 from feature_select import compare, plot_feature_selection_scatter, plot_matrix, calculate_accuracy
@@ -37,6 +41,29 @@ def feature_selection(train_set, train_labels, **kwargs):
     # return np.where(matrix == np.amax(matrix))[0]
     return [0, 6]
 
+def feature_sel_3d(train_set, train_labels, **kwargs):
+
+    n_features = train_set.shape[1]
+
+    class_1_colour = r'#3366ff'
+    class_2_colour = r'#cc3300'
+    class_3_colour = r'#ffc34d'
+
+    class_colours = [class_1_colour, class_2_colour, class_3_colour]
+    colors = [class_colours[int(label) - 1] for label in train_labels]
+
+    for i in range(0,n_features):
+        fig = plt.figure()
+        ax = mpl_t.Axes3D(fig)
+        ax.scatter(train_set[:,0], train_set[:,6], train_set[:,i], c=colors)
+        ax.set_zlabel("{}".format(i))
+        plt.xlabel("0")
+        plt.ylabel("0")
+        plt.title("{}".format(i))
+        plt.show()
+
+
+
 def plot_alt_accuracy( train_set, train_labels, test_set, test_labels):
     pred_labels = alternative_classifier(train_set,train_labels,test_set, 0, 6)
     print(calculate_accuracy(test_labels, pred_labels))
@@ -45,7 +72,7 @@ def plot_knn_accuracy(train_set, train_labels, test_set, test_labels):
 
     ks = [1, 2, 3, 4, 5, 7]
     accs = []
-    
+
     for k in ks:
 
         pred_labels = knn(train_set, train_labels, test_set, k, 0, 6)
@@ -103,6 +130,7 @@ def plot_confusion_matrix(gt_labels, pred_labels):
     plot_matrix(cm.transpose())
     plt.show()
 
+# THIS DOESNT WORK :(
 def plot_confusion_matrices(train_set, train_labels, test_set, test_labels, f1, f2):
     ks = np.array([1, 3, 5, 7])
 
@@ -312,7 +340,10 @@ if __name__ == '__main__':
         predictions = np.array(alternative_classifier(train_set, train_labels, test_set, 0, 6))
         plot_alt_accuracy(train_set, train_labels, test_set, test_labels)
         plot_confusion_matrix(test_labels, predictions)
+    elif mode == 'feature_sel_3d':
+        feature_sel_3d(train_set, train_labels)
     elif mode == 'knn_3d':
+        features = feature_sel_3d(train_set, train_labels)
         predictions = knn_three_features(
             train_set, train_labels, test_set, args.k, 0, 6, 1)
         print(calculate_accuracy(test_labels, predictions))
