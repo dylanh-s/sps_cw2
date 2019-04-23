@@ -10,7 +10,9 @@ to print your results
 from __future__ import print_function
 from collections import Counter
 
-from sklearn.neighbors import KNeighborsClassifier  
+# testing
+from sklearn.neighbors import KNeighborsClassifier 
+from sklearn.naive_bayes import GaussianNB 
 
 
 import argparse
@@ -34,7 +36,87 @@ CLASS_3_C = r'#ffc34d'
 colors = [CLASS_1_C, CLASS_2_C, CLASS_3_C]
 
 MODES = ['feature_sel', 'knn', 'knn_accuracy',
-         'knn_confusion' 'alt', 'knn_3d', 'knn_pca', 'knn_pca_evaluation']
+         'knn_confusion' 'alt', 'knn_3d', 'knn_pca', 'knn_pca_evaluation', 'test']
+
+# PLOT HELPER FUNCTIONS
+def plot_accuracy_bar(accs, labels=None):
+    ks = [1, 2, 3, 4, 5, 7]
+    fig, ax = plt.subplots()
+    
+    ks = np.array(ks)
+    
+    bar_width=0.45
+
+    if (accs.ndim == 1):
+        bar_width = 0.73
+        ax.bar(ks, accs, bar_width, color=colors[1], align="center",label="Title")
+        for i, k in enumerate(ks):
+            t = np.round(accs[i], 2)
+            ax.text(k , 0.5, t, horizontalalignment='center', color="white")
+    else:
+        for i, acc in enumerate(accs):
+            offset = i * bar_width
+            ax.bar(ks + offset, acc, bar_width, color=colors[i % 3], align="center",label=labels[i])
+            for j, k in enumerate(ks):
+                t = np.round(acc[j], 2)
+                ax.text(k + offset , 0.5, t, horizontalalignment='center', color="white")
+            
+
+    ax.set_xlabel('Value of k')
+    ax.set_ylabel('Accuracy')
+    ax.set_xticks((1,2,3,4,5,7))
+   
+    if (labels != None):
+        ax.legend()
+
+def plot_alt_accuracy( train_set, train_labels, test_set, test_labels):
+    pred_labels = alternative_classifier(train_set,train_labels,test_set, 0, 6)
+    print(calculate_accuracy(test_labels, pred_labels))
+
+
+def plot_knn_accuracy(train_set, train_labels, test_set, test_labels):
+
+    ks = [1, 2, 3, 4, 5, 7]
+    accs = []
+
+    for k in ks:
+
+        pred_labels = knn(train_set, train_labels, test_set, k, 0, 6)
+
+        a = calculate_accuracy(test_labels, pred_labels)
+
+        accs.append(a)
+
+    plot_accuracy_bar(np.array(accs))
+
+def plot_confusion_matrix(gt_labels, pred_labels, ax=None, title=None):
+    classes = np.unique(gt_labels)
+
+    counts = np.zeros(classes.size)
+    cm = np.zeros((classes.size, classes.size))
+
+    for i in range(1, classes.size+1):
+        counts[i-1] = np.count_nonzero(gt_labels == i)
+
+    for i in range(counts.size):
+        for j in range(counts.size):
+            cm[i, j] = (foo(i + 1, j + 1, gt_labels, pred_labels))/counts[i]
+
+
+    plot_matrix(cm.transpose(), ax=ax, title=title)
+
+def compare_confusion_matricies(pred1, title1, pred2, title2, test_labels):
+    fig, ax = plt.subplots(1, 2)
+
+    for a in ax:
+        a.set_aspect('equal')
+
+    plot_confusion_matrix(test_labels, pred1, ax=ax[0], title=title1)
+    plot_confusion_matrix(test_labels, pred2, ax=ax[1], title=title2)
+
+
+
+
 
 # FEATURE SELECT
 def feature_selection(train_set, train_labels, **kwargs):
@@ -84,25 +166,6 @@ def feature_sel_3d(train_set, train_labels, **kwargs):
             i = i-7
     plt.show()
 
-def plot_alt_accuracy( train_set, train_labels, test_set, test_labels):
-    pred_labels = alternative_classifier(train_set,train_labels,test_set, 0, 6)
-    print(calculate_accuracy(test_labels, pred_labels))
-
-
-def plot_knn_accuracy(train_set, train_labels, test_set, test_labels):
-
-    ks = [1, 2, 3, 4, 5, 7]
-    accs = []
-
-    for k in ks:
-
-        pred_labels = knn(train_set, train_labels, test_set, k, 0, 6)
-
-        a = calculate_accuracy(test_labels, pred_labels)
-
-        accs.append(a)
-
-    plot_accuracy_bar(np.array(accs))
 
 
 def plot_feature_selection_accuracy_matrix(train_set, train_labels, test_set, test_labels, k):
@@ -136,53 +199,6 @@ def foo(i, j, gt_labels, pred_labels):
                 count += 1
     return count
 
-# CONFUSION MATRIX
-def plot_confusion_matrix(gt_labels, pred_labels, ax=None, title=None):
-    classes = np.unique(gt_labels)
-
-    counts = np.zeros(classes.size)
-    cm = np.zeros((classes.size, classes.size))
-
-    for i in range(1, classes.size+1):
-        counts[i-1] = np.count_nonzero(gt_labels == i)
-
-    for i in range(counts.size):
-        for j in range(counts.size):
-            cm[i, j] = (foo(i + 1, j + 1, gt_labels, pred_labels))/counts[i]
-
-
-    plot_matrix(cm.transpose(), ax=ax, title=title)
-
-def compare_confusion_matricies(pred1, title1, pred2, title2, test_labels):
-    fig, ax = plt.subplots(1, 2)
-
-    for a in ax:
-        a.set_aspect('equal')
-
-    plot_confusion_matrix(test_labels, pred1, ax=ax[0], title=title1)
-    plot_confusion_matrix(test_labels, pred2, ax=ax[1], title=title2)
-
-
-
-
-
-# THIS DOESNT WORK :(
-def plot_confusion_matrices(train_set, train_labels, test_set, test_labels, f1, f2):
-    ks = np.array([1, 3, 5, 7])
-
-    fig, fig_ax = plt.subplots(ks.size, squeeze=True)
-
-    plt.rc('figure', figsize=(18, 30), dpi=110)
-    plt.rc('font', size=12)
-    plt.subplots_adjust(left=0.1, right=0.9, top=0.9,
-                        bottom=0.1, wspace=0.2, hspace=0.4)
-    count = 0
-    for a in fig_ax:
-        pred_labels = np.array(knn(train_set, train_labels, test_set, ks[count], 0, 6))
-        cm = plot_confusion_matrix(test_labels, pred_labels)
-        plot_matrix(cm, ax=a, title = "k = {}".format(ks[count]))
-        count = count + 1
-    plt.show()
 
 # SCATTER
 def plot_scatter(xs, ys, train_labels, title="Title"):
@@ -269,6 +285,7 @@ def alternative_post_likelihood(mean, var, p, n_classes=3):
         probs.append(prod)
     return probs
 
+# BAYES
 def alternative_classifier(train_set, train_labels, test_set, f1, f2, **kwargs):
     train_xs = train_set[:, f1]
     train_ys = train_set[:, f2]
@@ -311,7 +328,7 @@ def alternative_classifier(train_set, train_labels, test_set, f1, f2, **kwargs):
         predictions.append(np.argmax(options) + 1)
     return predictions
 
-
+# 3D KNN
 def knn_three_features(train_set, train_labels, test_set, k, f1, f2, f3, **kwargs):
     train_xs = train_set[:, f1]
     train_ys = train_set[:, f2]
@@ -349,7 +366,7 @@ def knn_three_features(train_set, train_labels, test_set, k, f1, f2, f3, **kwarg
     return classes
 
 
-
+# PCA
 def knn_pca(train_set, train_labels, test_set, k, n_components=2, **kwargs):
 
     # get the manuall selected set
@@ -375,37 +392,7 @@ def knn_pca(train_set, train_labels, test_set, k, n_components=2, **kwargs):
 
     return knn(train_set, train_labels, test_set, k, 0, 6 )
 
-def plot_accuracy_bar(accs, labels=None):
-    ks = [1, 2, 3, 4, 5, 7]
-    fig, ax = plt.subplots()
-    
-    ks = np.array(ks)
-    
-    bar_width=0.45
-
-    if (accs.ndim == 1):
-        bar_width = 0.73
-        ax.bar(ks, accs, bar_width, color=colors[1], align="center",label="Title")
-        for i, k in enumerate(ks):
-            t = np.round(accs[i], 2)
-            ax.text(k , 0.5, t, horizontalalignment='center', color="white")
-    else:
-        for i, acc in enumerate(accs):
-            offset = i * bar_width
-            ax.bar(ks + offset, acc, bar_width, color=colors[i % 3], align="center",label=labels[i])
-            for j, k in enumerate(ks):
-                t = np.round(acc[j], 2)
-                ax.text(k + offset , 0.5, t, horizontalalignment='center', color="white")
-            
-
-    ax.set_xlabel('Value of k')
-    ax.set_ylabel('Accuracy')
-    ax.set_xticks((1,2,3,4,5,7))
-   
-    if (labels != None):
-        ax.legend()
-
-
+# KNN PCA EVALUATION
 def manual_vs_pca(train_set, train_labels, test_set, test_labels):
     ks = [1, 2, 3, 4, 5, 7]
     accs = []
@@ -432,20 +419,66 @@ def manual_vs_pca(train_set, train_labels, test_set, test_labels):
 
     plot_accuracy_bar(np.array([man_accs, pca_accs]), ["Manual", "PSA"])
 
-    # ks = np.array(ks)
-    # bar_width=0.35
+def test_classifiers(train_set, train_labels, test_set, test_labels):
+    ks = [1, 2, 3, 4, 5, 7]
 
-    # ax.bar(ks, man_accs, bar_width, color=CLASS_1_C, label="Manual")
-    # ax.bar(ks + bar_width, pca_accs, bar_width, color=CLASS_2_C, label="PCA")
+    my_knn_accs = []
+    their_knn_accs = []
 
-    # ax.set_xlabel('Value of k')
-    # ax.set_ylabel('Accuracy')
-    # ax.set_xticks((1,2,3,4,5,7))
-   
-    # ax.legend()
+    my_bayes_accs = []
+    their_bayes_accs = []
+
+    for k in ks:
+        # my shit
+        my_knn_pred = knn(train_set, train_labels, test_set, k, 0, 6,)
+        my_bayes_pred = alternative_classifier(train_set, train_labels, test_set, 0, 6)
+
+        # their shit
+        knn_c = KNeighborsClassifier(n_neighbors=k)  
+        knn_c.fit(train_set, train_labels) 
+
+        bayes_c = GaussianNB()
+        bayes_c.fit(train_set, train_labels)
+
+        their_knn_pred = knn_c.predict(test_set).astype('int')
+        their_bayes_pred = bayes_c.predict(test_set).astype('int')
+        
+        # compare the accuracies here
+
+        my_knn_acc = calculate_accuracy(test_labels, my_knn_pred)
+        my_knn_accs.append(my_knn_acc)
+        
+        my_bayes_acc = calculate_accuracy(test_labels, my_bayes_pred)
+        my_bayes_accs.append(my_bayes_acc)
+
+
+        their_knn_acc = calculate_accuracy(test_labels, their_knn_pred)
+        their_knn_accs.append(their_knn_acc)
+
+        their_bayes_acc = calculate_accuracy(test_labels, their_bayes_pred)
+        their_bayes_accs.append(their_bayes_acc)
+
+
+        print("For k = %s" % (k))
+        print("k-NN:\n \tMy accuracy: %s\n\tTheir accuracy: %s" % (my_knn_acc, their_knn_acc))
+        print("Bayes:\n \tMy accuracy: %s\n\tTheir accuracy: %s" % (my_bayes_acc, their_bayes_acc))
+
+        
+    plot_accuracy_bar(np.array([np.array(my_knn_accs), np.array(their_knn_accs)]), labels=["My k-NN", "Their k-NN"])
+    plot_accuracy_bar(np.array([np.array(my_bayes_accs), np.array(their_bayes_accs)]), labels=["My Bayes", "Their Bayes"])
+
+    plt.show()
+
+       
+  
 
 
 
+
+
+
+    
+    return True
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -478,7 +511,7 @@ if __name__ == '__main__':
                                                                test_labels_path=args.test_labels_path)
     if mode == 'feature_sel':
         selected_features = feature_selection(train_set, train_labels)
-        plot_feature_selection_accuracy_matrix(train_set, train_labels, test_set, test_labels, 3)
+        # plot_feature_selection_accuracy_matrix(train_set, train_labels, test_set, test_labels, 3)
         print_features(selected_features)
     elif mode == 'knn':
         predictions = knn(train_set, train_labels, test_set, args.k, 0, 6)
@@ -517,6 +550,9 @@ if __name__ == '__main__':
         print_predictions(prediction)
     elif mode == 'knn_pca_evaluation':
         manual_vs_pca(train_set, train_labels, test_set, test_labels)
+        plt.show()
+    elif mode == 'test':
+        test_classifiers(train_set, train_labels, test_set, test_labels)
         plt.show()
     else:
         raise Exception(
