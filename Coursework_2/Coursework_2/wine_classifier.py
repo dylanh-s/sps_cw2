@@ -11,8 +11,8 @@ from __future__ import print_function
 from collections import Counter
 
 # testing
-from sklearn.neighbors import KNeighborsClassifier 
-from sklearn.naive_bayes import GaussianNB 
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
 
 
 import argparse
@@ -26,7 +26,7 @@ from sklearn.preprocessing import normalize
 from sklearn.preprocessing import StandardScaler
 
 from utilities import load_data, print_features, print_predictions
-from feature_select import compare, plot_feature_selection_scatter, plot_matrix, calculate_accuracy
+#from feature_select import compare, plot_feature_selection_scatter, plot_matrix, calculate_accuracy
 
 # you may use these colours to produce the scatter plots
 CLASS_1_C = r'#3366ff'
@@ -42,9 +42,9 @@ MODES = ['feature_sel', 'knn', 'knn_accuracy',
 def plot_accuracy_bar(accs, labels=None):
     ks = [1, 2, 3, 4, 5, 7]
     fig, ax = plt.subplots()
-    
+
     ks = np.array(ks)
-    
+
     bar_width=0.45
 
     if (accs.ndim == 1):
@@ -60,14 +60,21 @@ def plot_accuracy_bar(accs, labels=None):
             for j, k in enumerate(ks):
                 t = np.round(acc[j], 2)
                 ax.text(k + offset , 0.5, t, horizontalalignment='center', color="white")
-            
+
 
     ax.set_xlabel('Value of k')
     ax.set_ylabel('Accuracy')
     ax.set_xticks((1,2,3,4,5,7))
-   
+
     if (labels != None):
         ax.legend()
+
+def calculate_accuracy(gt_labels, pred_labels):
+    count = 0
+    for (gt, predicted) in zip(gt_labels, pred_labels):
+        if (gt == predicted):
+            count = count + 1
+    return count / gt_labels.size
 
 def plot_alt_accuracy( train_set, train_labels, test_set, test_labels):
     pred_labels = alternative_classifier(train_set,train_labels,test_set, 0, 6)
@@ -235,7 +242,7 @@ def knn(train_set, train_labels, test_set, k, f1, f2, **kwargs):
     if (cols == 2):
         f1 = 0
         f2 = 1
-        
+
     train_xs = train_set[:, f1]
     train_ys = train_set[:, f2]
     train_points = np.array([np.array([x, y])
@@ -373,7 +380,7 @@ def knn_pca(train_set, train_labels, test_set, k, n_components=2, **kwargs):
     feature_sel_set = np.array(list(zip(train_set[:, 0], train_set[:, 6])))
 
     pca = PCA(n_components=n_components)
-    
+
     # standardise
     s = StandardScaler().fit(train_set)
 
@@ -381,7 +388,7 @@ def knn_pca(train_set, train_labels, test_set, k, n_components=2, **kwargs):
     train_set = s.transform(train_set)
     test_set = s.transform(test_set)
 
-    # fit 
+    # fit
     pca.fit(train_set)
 
     # transform both
@@ -434,20 +441,20 @@ def test_classifiers(train_set, train_labels, test_set, test_labels):
         my_bayes_pred = alternative_classifier(train_set, train_labels, test_set, 0, 6)
 
         # their shit
-        knn_c = KNeighborsClassifier(n_neighbors=k)  
-        knn_c.fit(train_set, train_labels) 
+        knn_c = KNeighborsClassifier(n_neighbors=k)
+        knn_c.fit(train_set, train_labels)
 
         bayes_c = GaussianNB()
         bayes_c.fit(train_set, train_labels)
 
         their_knn_pred = knn_c.predict(test_set).astype('int')
         their_bayes_pred = bayes_c.predict(test_set).astype('int')
-        
+
         # compare the accuracies here
 
         my_knn_acc = calculate_accuracy(test_labels, my_knn_pred)
         my_knn_accs.append(my_knn_acc)
-        
+
         my_bayes_acc = calculate_accuracy(test_labels, my_bayes_pred)
         my_bayes_accs.append(my_bayes_acc)
 
@@ -463,21 +470,21 @@ def test_classifiers(train_set, train_labels, test_set, test_labels):
         print("k-NN:\n \tMy accuracy: %s\n\tTheir accuracy: %s" % (my_knn_acc, their_knn_acc))
         print("Bayes:\n \tMy accuracy: %s\n\tTheir accuracy: %s" % (my_bayes_acc, their_bayes_acc))
 
-        
+
     plot_accuracy_bar(np.array([np.array(my_knn_accs), np.array(their_knn_accs)]), labels=["My k-NN", "Their k-NN"])
     plot_accuracy_bar(np.array([np.array(my_bayes_accs), np.array(their_bayes_accs)]), labels=["My Bayes", "Their Bayes"])
 
     plt.show()
 
-       
-  
 
 
 
 
 
 
-    
+
+
+
     return True
 
 def parse_args():
