@@ -550,7 +550,7 @@ if __name__ == '__main__':
         features = feature_sel_3d(train_set, train_labels)
         predictions = knn_three_features(
             train_set, train_labels, test_set, args.k, 0, 6, 1)
-        print(calculate_accuracy(test_labels, predictions))
+        #print(calculate_accuracy(test_labels, predictions))
         print_predictions(predictions)
     elif mode == 'knn_pca':
         prediction = knn_pca(train_set, train_labels, test_set, args.k)
